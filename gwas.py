@@ -56,6 +56,9 @@ gwas_output_df["p"] = 1.0
 gwas_output_df["r2_adj"] = 0.0
 print("GWAS output formatting complete.")
 
+# to drop
+snps_to_drop = []
+
 
 def __iter_snp(snp: pd.Series, phenotype: np.ndarray) -> pd.Series:
     """
@@ -71,10 +74,12 @@ def __iter_snp(snp: pd.Series, phenotype: np.ndarray) -> pd.Series:
     phenotype : np.ndarray
         numpy ndarray of phenotype values from processed phenotype dataframe.
     """
+    snp_idx = snp.name
     # Encode
     alleles = snp.unique()
     allele_dict = {}
     if len(alleles) == 1:
+        snps_to_drop.append(snp_idx)
         return
     else:
         indv = len(snp)
@@ -85,8 +90,7 @@ def __iter_snp(snp: pd.Series, phenotype: np.ndarray) -> pd.Series:
         else:
             allele_dict = {alleles[1]:0, alleles[0]:1}
     snp.replace(allele_dict, inplace = True)
-    snp_idx = snp.name
-    genotypes.iloc[snp_idx, 1:] = snp
+    genotypes.loc[snp_idx].replace(allele_dict, inplace = True)
     model = sm.OLS(phenotype, snp.values)
     results = model.fit()
     gwas_output_df.iat[snp_idx, 1] = results.pvalues
@@ -103,6 +107,7 @@ del unused_output #mem management
 
 # Format linear model output.
 genotypes = pd.concat([gwas_output_df.p, genotypes], axis = 1)
+genotypes.drop(index = snps_to_drop, inplace = True)
 genotypes.index = genotypes.snp
 genotypes.drop(columns = ["snp"], inplace = True)
 genotypes.sort_values(by = 'p', inplace = True)

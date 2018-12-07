@@ -126,7 +126,7 @@ for i in range(modeling_rounds):
             return_estimator = True
         )
         output_df.at["OLS", str("Average_RMSE_" + str(num_feat))] += \
-            test_rmse(ols_cv["estimator"], X_test, y_test)
+            test_rmse(ols_cv["estimator"], X_test.loc[:, curr_snps], y_test)
         output_df.at["OLS", str("Average_R2_" + str(num_feat))] += \
             np.mean(ols_cv["test_score"], )
         output_df.at["OLS", "Average_Runtime"] += \
@@ -143,7 +143,7 @@ for i in range(modeling_rounds):
             return_estimator = True
         )
         output_df.at["Lasso", str("Average_RMSE_" + str(num_feat))] += \
-            test_rmse(lasso_cv["estimator"], X_test, y_test)
+            test_rmse(lasso_cv["estimator"], X_test.loc[:, curr_snps], y_test)
         output_df.at["Lasso", str("Average_R2_" + str(num_feat))] += \
             np.mean(lasso_cv["test_score"])
         lasso_weights_df.at[
@@ -163,7 +163,7 @@ for i in range(modeling_rounds):
             return_estimator = True
         )
         output_df.at["Ridge", str("Average_RMSE_" + str(num_feat))] += \
-            test_rmse(ridge_cv["estimator"], X_test, y_test)
+            test_rmse(ridge_cv["estimator"], X_test.loc[:, curr_snps], y_test)
         output_df.at["Ridge", str("Average_R2_" + str(num_feat))] += \
             np.mean(ridge_cv["test_score"])
         output_df.at["Ridge", "Average_Runtime"] += \
