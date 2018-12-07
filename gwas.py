@@ -9,6 +9,7 @@ import sys
 
 import numpy as np
 import pandas as pd
+# from sklearn.prepro
 import statsmodels.api as sm
 
 
@@ -16,10 +17,10 @@ import statsmodels.api as sm
 # gwas.py [genotype.csv] [FT10.txt]
 genotype_file_path = sys.argv[1]
 phenotype_file_path = sys.argv[2]
-genotypes = pd.read_csv(genotype_file_path)
-phenotypes = pd.read_table(phenotype_file_path)
-# genotypes = pd.read_csv("genotype.csv")
-# phenotypes = pd.read_table("FT10.txt")
+# genotypes = pd.read_csv(genotype_file_path)
+# phenotypes = pd.read_table(phenotype_file_path)
+genotypes = pd.read_csv("genotype.csv")
+phenotypes = pd.read_table("FT10.txt")
 print("Loading complete.")
 
 # Change sample IDs to integers and sort columns.
@@ -49,20 +50,16 @@ genotypes.drop(columns = gt_drop_cols, inplace = True)
 phenotypes = phenotypes[~(phenotypes.id.isin(pt_unique) | phenotypes.pt.isna())]
 print("Filtering complete.")
 
-# Replace bases with integer values.
-base_dict = {'A':1, 'C':2, 'G':3, 'T':4}
-genotypes.replace(base_dict, inplace = True) # kind of slow
-print("Base to integer complete.")
-
 # Format GWAS outputs.
 gwas_output_df = genotypes.loc[:, ["snp"]]
-gwas_output_df["p"] = 0.0
+gwas_output_df["p"] = 1.0
 gwas_output_df["r2_adj"] = 0.0
 print("GWAS output formatting complete.")
 
 
 def __iter_snp(snp: pd.Series, phenotype: np.ndarray) -> pd.Series:
     """
+    For a given SNP, encode the major allele as 0 and the minor allele as 1.
     Perform ordinary least squares linear regression on Phenotype ~ SNP Data.
     Put calculated P and R-Squared_adjusted values into the output dataframe.
 
@@ -74,7 +71,22 @@ def __iter_snp(snp: pd.Series, phenotype: np.ndarray) -> pd.Series:
     phenotype : np.ndarray
         numpy ndarray of phenotype values from processed phenotype dataframe.
     """
+    # Encode
+    alleles = snp.unique()
+    allele_dict = {}
+    if len(alleles) == 1:
+        return
+    else:
+        indv = len(snp)
+        a0 = (snp == alleles[0]).sum()
+        a1 = indv - a0
+        if a0 > a1:
+            allele_dict = {alleles[0]:0, alleles[1]:1}
+        else:
+            allele_dict = {alleles[1]:0, alleles[0]:1}
+    snp.replace(allele_dict, inplace = True)
     snp_idx = snp.name
+    genotypes.iloc[snp_idx, 1:] = snp
     model = sm.OLS(phenotype, snp.values)
     results = model.fit()
     gwas_output_df.iat[snp_idx, 1] = results.pvalues
